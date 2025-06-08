@@ -49,7 +49,9 @@ function Assets({publicKey}: {publicKey: string}){
         <br />
 
         <div className="flex justify-between">
-            <div></div>
+            <div>
+                
+            </div>
 
             <div>
                 <PrimaryButton onClick={() => {
