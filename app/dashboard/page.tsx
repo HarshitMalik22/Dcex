@@ -1,35 +1,35 @@
-"use client";
-import {useSession} from "next-auth/react"
-import { useRouter } from "next/navigation";
-export default function Dashboard() {
-    const session = useSession();
-    const router = useRouter();
 
-    if (session.status === "loading"){
-        return <div>
-            Loading...
-        </div>
+import { getServerSession } from "next-auth";
+import { ProfileCard } from "../components/ProfileCard";
+import { prisma } from "@/app/db"
+import { authConfig } from "@/lib/auth"
+
+async function getUserWallet() {
+    const session =  await getServerSession(authConfig);
+    const userWallet = await prisma.solWallet.findFirst({
+        where: {
+            userId: session?.user?.uid
+        },
+        select:{
+            publicKey: true
+        }
+    })
+    if (!userWallet){
+        return {
+            error: "No solana wallet found associated with this account"
+        }
     }
 
-    if (!session.data?.user){
-        router.push("/")
-    }
-    return <div className="pt-8 flex justify-center">
-        <div className="max-w-4xl bg-white rounded shadow w-full p-12">
-            <Greeting 
-            image={session.data?.user?.image ?? ""} 
-            name={session.data?.user?.name ?? ""} 
-            />
-        </div>
-        
-    </div>
+    return userWallet
 }
-function Greeting({image, name}: {image: string, name: string})
-{
-    return <div className="flex">
-        <img src={image} className="rounded-full w-16 h-16 mr-4"/>
-        <div className="text-2xl font-bold ml-4 flex flex-col justify-center"/>
-            Welcome Back, {name}
-    </div>
 
+export default async function() {
+    const userWallet = await getUserWallet();
+
+    if (userWallet.error || !userWallet.publicKey){
+        return <>No Solana wallet found</>
+    }
+    return <div>
+        <ProfileCard publicKey={userWallet.publicKey}/>
+    </div>
 }
