@@ -2,6 +2,8 @@ import { Session } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import crypto from "crypto";
 import { prisma } from "@/app/db";
+import { JWT } from "next-auth/jwt";
+import { Account, User } from "next-auth";
 
 export interface CustomSession extends Session {
     user: {
@@ -26,16 +28,20 @@ export const authConfig = {
             }
             return session;
         },
-        async jwt({token, account, profile}: any){
-            const user= await prisma.user.findFirst({
-                where:{
-                    sub: account?.providerAccountId ?? ""
+        async jwt({token, account, user}: {token: JWT, account: Account | null, user: User | null}) {
+            if (account && user && user.email) {
+                // Only try to find user when account is available (during sign in)
+                const dbUser = await prisma.user.findFirst({
+                    where: {
+                        email: user.email
+                    }
+                });
+                
+                if (dbUser) {
+                    token.uid = dbUser.id;
                 }
-            })
-            if(user){
-                token.uid = user.id
             }
-            return token
+            return token;
         },
         async signIn({ user, account, profile }: any) {
         try {
@@ -66,15 +72,15 @@ export const authConfig = {
               data: {
                 username: email,
                 email: email,
-                name: profile?.name,
+                name: profile?.name || user.name || email,
                 //@ts-ignore
-                profilePicture: profile?.picture,
+                profilePicture: profile?.picture || user.image,
                 provider: "Google",
-                sub: account.providerAccountId,
+                sub: account.providerAccountId || "",
                 solWallet: {
                   create: {
                     publicKey: publicKey,
-                    privateKey: privateKey.toString()
+                    privateKey: privateKey
                   }
                 },
                 inrWallet: {
@@ -97,4 +103,4 @@ export const authConfig = {
     pages: {
       error: '/auth/error'
     }
-  });
+  };
