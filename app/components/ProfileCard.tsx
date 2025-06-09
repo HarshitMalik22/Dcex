@@ -4,9 +4,11 @@ import { useRouter } from "next/navigation";
 import { PrimaryButton } from "./Button";
 import { useState, useEffect } from "react";
 
+
 export const ProfileCard = ({publicKey}: {publicKey: string}) => {
     const session = useSession();
     const router = useRouter();
+    const {tokenBalances, loading} = useTokens(publicKey);
     
 
     if (session.status === "loading"){
